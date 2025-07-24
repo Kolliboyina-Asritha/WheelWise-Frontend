@@ -609,7 +609,8 @@ async function loadFavorites() {
     if (!res.ok) throw new Error(`Failed to load favourites. Status: ${res.status}`);
     const data = await res.json();
 
-    favouriteVehicleIds = data.map(v => v._id);
+    favouriteVehicleIds = data.filter(v => v && v._id).map(v => v._id);
+
 
     const mainContent = document.getElementById('mainContent');
 
