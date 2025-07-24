@@ -578,7 +578,6 @@ async function refreshAccessToken() {
       const decoded = parseJwt(accessToken);
       username = decoded?.UserInfo?.email || '';
       console.log('Logged in as', username);
-       await fetchFavourites();
     } else {
       alert('Session expired. Please login again.');
       window.location.href = '/login.html';
@@ -589,163 +588,132 @@ async function refreshAccessToken() {
   }
 }
 
-
-
-function showWelcome() {
-  document.getElementById('mainContent').innerHTML = `
-    <h1>Welcome, ${username} 👋</h1>
-    <p>Select an option from the left menu to begin.</p>
-  `;
-}
-
-
-async function fetchFavourites() {
+async function loadFavorites() {
   try {
     const res = await fetch(`${BASE_URL}/buyer/favourites`, {
-      headers: { 'Authorization': 'Bearer ' + accessToken },credentials: 'include',
-    }
-     );
+      headers: { 'Authorization': `Bearer ${accessToken}` },
+      credentials: 'include',
+    });
+
+    if (!res.ok) throw new Error(`Failed to load favourites. Status: ${res.status}`);
     const data = await res.json();
+
     favouriteVehicleIds = data.map(v => v._id);
-  } catch (err) {
-    console.error('Error fetching favourites:', err);
-  }
-}
 
+    const mainContent = document.getElementById('mainContent');
 
+    if (!Array.isArray(data) || data.length === 0) {
+      mainContent.innerHTML = `
+        <h2>Your Favourite Vehicles</h2>
+        <p>You haven't favourited anything yet.</p>
+      `;
+      return;
+    }
 
+    const container = document.createElement('div');
+    container.className = 'favourites-grid';
 
+    data.forEach(vehicle => {
+      const card = document.createElement('div');
+      card.className = 'fav-card';
 
-function loadFavorites() {
-  fetch(`${BASE_URL}/buyer/favourites`, {
-    headers: { 'Authorization': 'Bearer ' + accessToken }, credentials: 'include',
-  })
-    .then(res => res.json())
-    .then(data => {
-      if (!Array.isArray(data) || data.length === 0) {
-        document.getElementById('mainContent').innerHTML = `
-          <h2>Your Favourite Vehicles</h2>
-          <p>You haven't favourited anything yet.</p>
-        `;
-        return;
-      }
+      card.innerHTML = `
+        <div style="position: relative;">
+          <img src="${vehicle.imageUrl}" alt="${vehicle.title}" />
+          <span class="heart-icon" data-id="${vehicle._id}"
+                style="position: absolute; top: 1px; right: 1px; font-size: 22px; cursor: pointer; color: red;">
+            ❤️
+          </span>
+        </div>
+        <h3>${vehicle.title}</h3>
+        <p><strong>Model:</strong> ${vehicle.model}</p>
+        <p><strong>Price:</strong> ₹${vehicle.price}</p>
+        <p><strong>Year:</strong> ${vehicle.year}</p>
+        <p><strong>Condition:</strong> ${vehicle.condition}</p>
+        <button class="add-to-cart-btn" onclick="addToCart('${vehicle._id}')" style="
+          width: 100%;
+          padding: 10px;
+          background-color: #0d6efd;
+          color: white;
+          border: none;
+          border-radius: 8px;
+          font-size: 16px;
+          margin-top: 10px;
+          cursor: pointer;
+        ">Add to Cart</button>
+      `;
 
-      const container = document.createElement('div');
-      container.className = 'favourites-grid';
-
-      data.forEach(vehicle => {
-        const card = document.createElement('div');
-        card.className = 'fav-card';
-
-        card.innerHTML = `
-          <div style="position: relative;">
-            <img src="${vehicle.imageUrl}" alt="${vehicle.title}" />
-            <span class="heart-icon" data-id="${vehicle._id}"
-                  style="position: absolute; top: 1px; right: 1px; font-size: 22px; cursor: pointer; color: red;">
-              ❤️
-            </span>
-          </div>
-          <h3>${vehicle.title}</h3>
-          
-          <p><strong>Model:</strong> ${vehicle.model}</p>
-          <p><strong>Price:</strong> ₹${vehicle.price}</p>
-          <p><strong>Year:</strong> ${vehicle.year}</p>
-          <p><strong>Condition:</strong> ${vehicle.condition}</p>
-          <button class="add-to-cart-btn" onclick="addToCart('${vehicle._id}')"style="
-            width: 100%;
-            padding: 10px;
-            background-color: #0d6efd;
-            color: white;
-            border: none;
-            border-radius: 8px;
-            font-size: 16px;
-            margin-top: 10px;
-            cursor: pointer;
-          ">Add to Cart</button>
-        `;
-
-        const heart = card.querySelector('.heart-icon');
-        heart.addEventListener('click', async () => {
-          const vehicleId = heart.getAttribute('data-id');
-          try {
-            const res = await fetch(`${BASE_URL}/buyer/favourites/${vehicleId}`, {
-              method: 'DELETE',
-              headers: {
-                'Authorization': 'Bearer ' + accessToken
-              }, credentials: 'include',
-            });
-            if (res.ok) {
-              // Update UI
-              card.remove();
-              // Remove from local array
-              favouriteVehicleIds = favouriteVehicleIds.filter(id => id !== vehicleId);
-              // Optionally show a toast
-              console.log('Removed from favourites:', vehicleId);
-            } else {
-              console.warn('Failed to remove favourite');
-            }
-          } catch (err) {
-            console.error('Error removing favourite:', err);
+      const heart = card.querySelector('.heart-icon');
+      heart.addEventListener('click', async () => {
+        const vehicleId = heart.getAttribute('data-id');
+        try {
+          const deleteRes = await fetch(`${BASE_URL}/buyer/favourites/${vehicleId}`, {
+            method: 'DELETE',
+            headers: { 'Authorization': `Bearer ${accessToken}` },
+            credentials: 'include',
+          });
+          if (deleteRes.ok) {
+            card.remove();
+            favouriteVehicleIds = favouriteVehicleIds.filter(id => id !== vehicleId);
+            console.log('Removed from favourites:', vehicleId);
+          } else {
+            console.warn('Failed to remove favourite');
           }
-        });
-
-        container.appendChild(card);
+        } catch (err) {
+          console.error('Error removing favourite:', err);
+        }
       });
 
-      document.getElementById('mainContent').innerHTML = `
-        <h2>Your Favourite Vehicles</h2>
-      `;
-      document.getElementById('mainContent').appendChild(container);
-
-      // Attach styles
-      const style = document.createElement('style');
-      style.innerHTML = `
-        .favourites-grid {
-          display: grid;
-          grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-          gap: 20px;
-          margin-top: 20px;
-        }
-
-        .fav-card {
-          background: white;
-          border-radius: 12px;
-          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-          padding: 16px;
-          text-align: center;
-          transition: transform 0.2s ease;
-          position: relative;
-        }
-
-        .fav-card:hover {
-          transform: scale(1.02);
-        }
-
-        .fav-card img {
-          width: 100%;
-          height: 160px;
-          object-fit: contain;
-          border-radius: 8px;
-          margin-bottom: 10px;
-        }
-
-        .fav-card h3 {
-          color: #1a73e8;
-          margin-bottom: 8px;
-        }
-
-        .fav-card p {
-          margin: 4px 0;
-          font-size: 14px;
-          color: #333;
-        }
-      `;
-      document.head.appendChild(style);
-    })
-    .catch(err => {
-      console.error("Error loading favourites:", err);
-      document.getElementById('mainContent').innerHTML = `<p>Error loading favourites.</p>`;
+      container.appendChild(card);
     });
+
+    mainContent.innerHTML = `<h2>Your Favourite Vehicles</h2>`;
+    mainContent.appendChild(container);
+
+    // Inject styles
+    const style = document.createElement('style');
+    style.innerHTML = `
+      .favourites-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+        gap: 20px;
+        margin-top: 20px;
+      }
+      .fav-card {
+        background: white;
+        border-radius: 12px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        padding: 16px;
+        text-align: center;
+        transition: transform 0.2s ease;
+        position: relative;
+      }
+      .fav-card:hover {
+        transform: scale(1.02);
+      }
+      .fav-card img {
+        width: 100%;
+        height: 160px;
+        object-fit: contain;
+        border-radius: 8px;
+        margin-bottom: 10px;
+      }
+      .fav-card h3 {
+        color: #1a73e8;
+        margin-bottom: 8px;
+      }
+      .fav-card p {
+        margin: 4px 0;
+        font-size: 14px;
+        color: #333;
+      }
+    `;
+    document.head.appendChild(style);
+
+  } catch (err) {
+    console.error("Error loading favourites:", err);
+    document.getElementById('mainContent').innerHTML = `<p>Error loading favourites: ${err.message}</p>`;
+  }
 }
 
 async function addToCart(vehicleId) {
@@ -755,7 +723,8 @@ async function addToCart(vehicleId) {
       headers: {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${accessToken}`
-      }, credentials: 'include',
+      },
+      credentials: 'include',
       body: JSON.stringify({ vehicleId })
     });
 
@@ -774,6 +743,17 @@ window.onload = async () => {
   await refreshAccessToken();
   await loadFavorites();
 };
+
+
+function showWelcome() {
+  document.getElementById('mainContent').innerHTML = `
+    <h1>Welcome, ${username} 👋</h1>
+    <p>Select an option from the left menu to begin.</p>
+  `;
+}
+
+
+
 function loadForm() {
   fetch(`${BASE_URL}/buyer/details`, {
     headers: { 'Authorization': 'Bearer ' + accessToken }, credentials: 'include',
