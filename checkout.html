@@ -684,8 +684,8 @@
 
     async function loadCheckoutPage() {
       const cartRes = await fetch(`${BASE_URL}/cart`, {
-        headers: { 'Authorization': 'Bearer ' + accessToken }
-      },  credentials: 'include',);
+        headers: { 'Authorization': 'Bearer ' + accessToken },credentials: 'include',
+      });
       const cartItems = await cartRes.json();
 
       if (!cartItems.length) {
