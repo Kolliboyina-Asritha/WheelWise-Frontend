@@ -592,9 +592,9 @@ async function refreshAccessToken() {
 async function fetchFavourites() {
   try {
     const res = await fetch(`${BASE_URL}/buyer/favourites`, {
-      headers: { 'Authorization': 'Bearer ' + accessToken }
-    },
-      credentials: 'include',);
+      headers: { 'Authorization': 'Bearer ' + accessToken },credentials: 'include',
+    }
+     );
     const data = await res.json();
     favouriteVehicleIds = data.map(v => v._id);
   } catch (err) {
