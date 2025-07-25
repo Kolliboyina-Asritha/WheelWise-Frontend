@@ -454,13 +454,13 @@
 
     <div class="nav-container">
       <ul class="nav-links">
-        <li><a href="homepage.html">Home</a></li>
-        <li><a href="homepage.html#about">About</a></li>
+        <li><a href="index.html">Home</a></li>
+        <li><a href="index.html#about">About</a></li>
 
         <!-- Pages Dropdown -->
         
 
-        <li><a href="homepage.html#brands">Shop</a></li>
+        <li><a href="index.html#brands">Shop</a></li>
         
         <li><a href="contact.html">Contact</a></li>
       </ul>
@@ -564,7 +564,7 @@
     <div class="footer-box">
       <h4>Quick Links</h4>
       <ul>
-        <li><a href="homepage.html#about">About Us</a></li>
+        <li><a href="index.html#about">About Us</a></li>
         <li><a href="#">Update News</a></li>
         <li><a href="#">Testimonials</a></li>
         <li><a href="#">Terms of Service</a></li>
@@ -669,7 +669,7 @@
         if (res.ok) {
           alert("Signed up successfully with Google!");
           localStorage.setItem('accessToken', data.accessToken);
-          window.location.href = "homepage.html"; // Redirect as needed
+          window.location.href = "index.html"; // Redirect as needed
         } else {
           alert(data.message || "Google signup failed.");
         }
